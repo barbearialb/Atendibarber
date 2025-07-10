@@ -392,12 +392,12 @@ else:
                             'barbeiro': barbeiro
                         }
                         st.rerun()
-                elif status in ['ocupado', 'almoco']:
-                    st.session_state.view = 'cancelar'
-                    st.session_state.agendamento_info = {
-                        'data_str': data_str,
-                        'horario': horario,
-                        'barbeiro': barbeiro,
-                        'dados': dados_agendamento
-                    }
-                    st.rerun()
+                    elif status in ['ocupado', 'almoco']:
+                        st.session_state.view = 'cancelar'
+                        st.session_state.agendamento_info = {
+                            'data_str': data_str,
+                            'horario': horario,
+                            'barbeiro': barbeiro,
+                            'dados': dados_agendamento
+                        }
+                        st.rerun()
