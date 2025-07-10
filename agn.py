@@ -13,53 +13,56 @@ import time
 st.set_page_config(layout="wide")
 
 # CSS customizado para colorir os botões da tabela e centralizar o texto
+# CSS customizado para criar uma grade de agendamentos visual e responsiva
 st.markdown("""
 <style>
-    /* Estilo para o container dos botões para garantir altura uniforme */
-    div.stButton {
-        display: flex;
+    /* Define a célula base do agendamento */
+    .schedule-cell {
+        height: 50px;              /* Altura fixa para cada célula */
+        border-radius: 8px;        /* Bordas arredondadas */
+        display: flex;             /* Centraliza o conteúdo */
+        align-items: center;
         justify-content: center;
+        margin-bottom: 5px;        /* Espaço entre as linhas */
+        padding: 5px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); /* Sombra sutil */
     }
-    /* Estilo para o botão em si */
-    div.stButton > button {
-        width: 100%;       /* Ocupa toda a largura da coluna */
-        height: 50px;      /* Altura fixa para todos os botões */
+
+    /* Cores de fundo baseadas no status */
+    .schedule-cell.disponivel { background-color: #28a745; } /* Verde */
+    .schedule-cell.ocupado    { background-color: #dc3545; } /* Vermelho */
+    .schedule-cell.almoco     { background-color: #ffc107; color: black;} /* Laranja */
+    .schedule-cell.indisponivel { background-color: #6c757d; } /* Cinza */
+
+    /* Estiliza o botão dentro da célula para ser "invisível" mas clicável */
+    .schedule-cell button {
+        background-color: transparent;
+        color: white;
+        border: none;
+        width: 100%;
+        height: 100%;
         font-weight: bold;
-        border-radius: 5px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    /* Cores dos Botões por Status */
-    /* Botão Disponível (Verde) */
-    .disponivel button {
-        background-color: #28a745;
-        color: white;
+    
+    /* Para o texto do botão (que é um <p> dentro do botão do Streamlit) */
+    .schedule-cell button p {
+        color: white; /* Cor do texto para status verde e vermelho */
+        margin: 0;
+        white-space: nowrap;      /* Impede a quebra de linha */
+        overflow: hidden;         /* Esconde o que passar do limite */
+        text-overflow: ellipsis;  /* Adiciona "..." ao final de texto longo */
     }
-    .disponivel button:hover {
-        background-color: #218838;
-        color: white;
-        border: 1px solid #1e7e34;
-    }
-    /* Botão Ocupado (Vermelho) */
-    .ocupado button {
-        background-color: #dc3545;
-        color: white;
-    }
-    .ocupado button:hover {
-        background-color: #c82333;
-        color: white;
-        border: 1px solid #bd2130;
-    }
-    /* Botão Almoço (Laranja) */
-    .almoco button {
-        background-color: #ffc107;
+
+    /* Cor do texto específica para a célula de almoço */
+    .schedule-cell.almoco button p {
         color: black;
     }
-    /* Botão Descanso/Indisponível (Cinza) */
-    .indisponivel button {
-        background-color: #6c757d;
-        color: white;
-        pointer-events: none; /* Desativa o clique */
+
+    /* Remove o ponteiro de clique para horários não clicáveis */
+    .schedule-cell.indisponivel {
+        pointer-events: none;
     }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -301,7 +304,10 @@ elif st.session_state.view == 'cancelar':
 # --- TELA PRINCIPAL (GRID DE AGENDAMENTOS) ---
 else:
     st.title("Barbearia Lucas Borges - Agendamentos Internos")
-    st.image("https://github.com/barbearialb/sistemalb/blob/main/icone.png?raw=true", width=200)
+    # Centraliza a logo usando colunas e aumenta o tamanho
+    cols_logo = st.columns([1, 2, 1])
+    with cols_logo[1]:
+        st.image("https://github.com/barbearialb/sistemalb/blob/main/icone.png?raw=true", width=350)
 
     data_selecionada = st.date_input(
         "Selecione a data para visualizar",
@@ -358,7 +364,7 @@ else:
             # Renderiza o botão dentro de um container div para aplicar o estilo CSS
             with grid_cols[i+1]:
                 # O div com a classe permite o CSS funcionar
-                st.markdown(f'<div class="{status}">', unsafe_allow_html=True)
+                st.markdown(f'<div class="schedule-cell {status}">', unsafe_allow_html=True)
                 if st.button(texto_botao, key=f"btn_{data_str}_{horario}_{barbeiro}", disabled=not is_clicavel):
                     if status == 'disponivel':
                         st.session_state.view = 'agendar'
