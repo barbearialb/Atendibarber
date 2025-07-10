@@ -362,10 +362,28 @@ else:
                     texto_botao = "Almoço"
 
             # Renderiza o botão dentro de um container div para aplicar o estilo CSS
+            key = f"btn_{data_str}_{horario}_{barbeiro}"
             with grid_cols[i+1]:
-                # O div com a classe permite o CSS funcionar
-                st.markdown(f'<div class="schedule-cell {status}">', unsafe_allow_html=True)
-                if st.button(texto_botao, key=f"btn_{data_str}_{horario}_{barbeiro}", disabled=not is_clicavel):
+                cor_botao = "#28a745" if status == "disponivel" else "#dc3545" if status == "ocupado" else "#ffc107"
+                cor_texto = "black" if status == "almoco" else "white"
+                botao_html = f"""
+                    <button style='
+                        background-color: {cor_botao};
+                        color: {cor_texto};
+                        border: none;
+                        border-radius: 6px;
+                        padding: 4px 8px;
+                        width: 100%;
+                        font-size: 12px;
+                        font-weight: bold;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    '  onclick="document.getElementById('{key}').click()">{texto_botao}</button>
+                    <input type="hidden" id="{key}">
+                 """
+                st.markdown(botao_html, unsafe_allow_html=True)
+                if st.button("", key=key, disabled=not is_clicavel):
                     if status == 'disponivel':
                         st.session_state.view = 'agendar'
                         st.session_state.agendamento_info = {
@@ -374,14 +392,12 @@ else:
                             'barbeiro': barbeiro
                         }
                         st.rerun()
-                    elif status == 'ocupado' or status == 'almoco':
-                        st.session_state.view = 'cancelar'
-                        st.session_state.agendamento_info = {
-                            'data_str': data_str,
-                            'horario': horario,
-                            'barbeiro': barbeiro,
-                            'dados': dados_agendamento
-                        }
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-        st.container() # Adiciona um pouco de espaço vertical
+                elif status in ['ocupado', 'almoco']:
+                    st.session_state.view = 'cancelar'
+                    st.session_state.agendamento_info = {
+                        'data_str': data_str,
+                        'horario': horario,
+                        'barbeiro': barbeiro,
+                        'dados': dados_agendamento
+                    }
+                    st.rerun()
