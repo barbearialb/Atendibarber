@@ -382,38 +382,47 @@ else:
 
             # Renderiza o botão dentro de um container div para aplicar o estilo CSS
             with grid_cols[i + 1]:
-                key = f"{data_str}_{horario}_{barbeiro}"       
-                form_key = f"form_{key}"                       
-                classe_css = f"schedule-cell {status}"         
+                key = f"{data_str}_{horario}_{barbeiro}"         
+            form_key = f"form_{key}"                         
+            classe_css = f"schedule-cell {status}"            
 
-                with st.form(key=form_key):
-                    st.markdown(f"""
-                        <div class="{classe_css}">
-                            <button type="submit">
-                                <p>{texto_botao}</p>
+    # ---- Formulário invisível (célula clicável) ----
+            with st.form(key=form_key):
+                st.markdown(f"""
+                    <div class="{classe_css}">
+                        <button type="submit">
+                            <p>{texto_botao}</p>
                         </button>
                     </div>
-                """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True,
+                )
 
-                submitted = st.form_submit_button(label="", use_container_width=True, disabled=not is_clicavel)
+        # ⬇⬇ ESTE botão FICA DENTRO do bloco st.form! ⬇⬇
+                submitted = st.form_submit_button(
+                    label="",
+                    use_container_width=True,
+                    disabled=not is_clicavel,
+                )
+        # ⬆⬆ Dentro do with st.form ⬆⬆
 
-                if submitted and is_clicavel:
-                    if status == "disponivel":
-                        st.session_state.view = "agendar"
-                        st.session_state.agendamento_info = {
-                            "data_str": data_str,
-                            "horario": horario,
-                            "barbeiro": barbeiro,
-                        }
-                    st.rerun()
-
-                elif status in ["ocupado", "almoco"]:
-                    st.session_state.view = "cancelar"
+    # ---- Ação depois do clique ----
+            if submitted and is_clicavel:
+                if status == "disponivel":
+                    st.session_state.view = "agendar"
                     st.session_state.agendamento_info = {
                         "data_str": data_str,
                         "horario": horario,
                         "barbeiro": barbeiro,
-                        "dados": dados_agendamento,
                     }
                     st.rerun()
+            elif status in ["ocupado", "almoco"]:
+                st.session_state.view = "cancelar"
+                st.session_state.agendamento_info = {
+                    "data_str": data_str,
+                    "horario": horario,
+                    "barbeiro": barbeiro,
+                    "dados": dados_agendamento,
+                }
+                st.rerun()
+
 
