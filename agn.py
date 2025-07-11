@@ -174,7 +174,6 @@ def desbloquear_horario_seguinte(data, horario, barbeiro):
         st.warning(f"Não foi possível desbloquear o horário seguinte: {e}")
 
 
-@st.cache_data(ttl=60) # Cache para não consultar o DB a cada clique
 def verificar_status_horario(data, horario, barbeiro):
     """Verifica o status e retorna (status, dados_do_agendamento)."""
     if not db: return ("indisponivel", None)
