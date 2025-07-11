@@ -381,42 +381,39 @@ else:
                     texto_botao = "Almoço"
 
             # Renderiza o botão dentro de um container div para aplicar o estilo CSS
-            key = f"btn_{data_str}_{horario}_{barbeiro}"
-            with grid_cols[i+1]:
-                cor_botao = "#28a745" if status == "disponivel" else "#dc3545" if status == "ocupado" else "#ffc107"
-                cor_texto = "black" if status == "almoco" else "white"
-                botao_html = f"""
-                    <button style='
-                        background-color: {cor_botao};
-                        color: {cor_texto};
-                        border: none;
-                        border-radius: 6px;
-                        padding: 4px 8px;
-                        width: 100%;
-                        font-size: 12px;
-                        font-weight: bold;
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    '  onclick="document.getElementById('{key}').click()">{texto_botao}</button>
-                    <input type="hidden" id="{key}">
-                 """
-                st.markdown(botao_html, unsafe_allow_html=True)
-                if st.button("", key=key, disabled=not is_clicavel):
-                    if status == 'disponivel':
-                        st.session_state.view = 'agendar'
+            with grid_cols[i + 1]:
+                key = f"{data_str}_{horario}_{barbeiro}"       
+                form_key = f"form_{key}"                       
+                classe_css = f"schedule-cell {status}"         
+
+                with st.form(key=form_key):
+                    st.markdown(f"""
+                        <div class="{classe_css}">
+                            <button type="submit">
+                                <p>{texto_botao}</p>
+                        </button>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                submitted = st.form_submit_button(label="", use_container_width=True, disabled=not is_clicavel)
+
+                if submitted and is_clicavel:
+                    if status == "disponivel":
+                        st.session_state.view = "agendar"
                         st.session_state.agendamento_info = {
-                            'data_str': data_str,
-                            'horario': horario,
-                            'barbeiro': barbeiro
+                            "data_str": data_str,
+                            "horario": horario,
+                            "barbeiro": barbeiro,
                         }
-                        st.rerun()
-                    elif status in ['ocupado', 'almoco']:
-                        st.session_state.view = 'cancelar'
-                        st.session_state.agendamento_info = {
-                            'data_str': data_str,
-                            'horario': horario,
-                            'barbeiro': barbeiro,
-                            'dados': dados_agendamento
-                        }
-                        st.rerun()
+                    st.rerun()
+
+                elif status in ["ocupado", "almoco"]:
+                    st.session_state.view = "cancelar"
+                    st.session_state.agendamento_info = {
+                        "data_str": data_str,
+                        "horario": horario,
+                        "barbeiro": barbeiro,
+                        "dados": dados_agendamento,
+                    }
+                    st.rerun()
+
