@@ -248,6 +248,16 @@ if st.session_state.view == 'agendar':
                                 bloquear_horario(info['data_str'], horario_seguinte_str, info['barbeiro'], "BLOQUEADO")
 
                             st.success(f"Agendamento para {nome_cliente} confirmado!")
+                            assunto_email = f"Novo Agendamento: {nome_cliente} em {info['data_str']}"
+                            mensagem_email = (
+                                f"Novo agendamento realizado:\n\n"
+                                f"Cliente: {nome_cliente}\n"
+                                f"Data: {info['data_str']}\n"
+                                f"Horário: {info['horario']}\n"
+                                f"Barbeiro: {info['barbeiro']}\n"
+                                f"Serviços: {', '.join(servicos_selecionados) if servicos_selecionados else 'Nenhum'}"
+                            )
+                            enviar_email(assunto_email, mensagem_email)
                             st.session_state.view = 'main'
                             time.sleep(2)
                             st.rerun()
@@ -289,6 +299,16 @@ elif st.session_state.view == 'cancelar':
                     desbloquear_horario_seguinte(info['data_str'], info['horario'], info['barbeiro'])
 
                 st.success("Agendamento cancelado!")
+                nome_cliente_cancelado = dados_cancelados.get('nome', 'N/A')
+                assunto_email = f"Cancelamento de Agendamento: {nome_cliente_cancelado} em {info['data_str']}"
+                mensagem_email = (
+                    f"O seguinte agendamento foi CANCELADO:\n\n"
+                    f"Cliente: {nome_cliente_cancelado}\n"
+                    f"Data: {info['data_str']}\n"
+                    f"Horário: {info['horario']}\n"
+                    f"Barbeiro: {info['barbeiro']}"
+                )
+                enviar_email(assunto_email, mensagem_email)
                 st.session_state.view = 'main'
                 time.sleep(2)
                 st.rerun()
