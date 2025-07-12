@@ -14,31 +14,25 @@ st.set_page_config(layout="wide")
 
 # CSS customizado para colorir os botões da tabela e centralizar o texto
 # CSS customizado para criar uma grade de agendamentos visual e responsiva
-# CSS customizado para criar uma grade de agendamentos visual e responsiva
 st.markdown("""
 <style>
     /* Define a célula base do agendamento */
     .schedule-cell {
-        height: 40px;              /* Altura padrão reduzida */
+        height: 50px;              /* Altura fixa para cada célula */
         border-radius: 8px;        /* Bordas arredondadas */
         display: flex;             /* Centraliza o conteúdo */
         align-items: center;
         justify-content: center;
-        margin-bottom: 4px;        /* Espaço entre as linhas */
+        margin-bottom: 5px;        /* Espaço entre as linhas */
         padding: 5px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-        transition: transform 0.2s ease; /* Efeito suave ao passar o mouse */
-    }
-    
-    .schedule-cell:hover {
-        transform: scale(1.03); /* Leve aumento ao passar o mouse */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); /* Sombra sutil */
     }
 
     /* Cores de fundo baseadas no status */
-    .disponivel { background-color: #28a745; } /* Verde */
-    .ocupado    { background-color: #dc3545; } /* Vermelho */
-    .almoco     { background-color: #ffc107; color: black; } /* Laranja */
-    .indisponivel { background-color: #6c757d; } /* Cinza */
+    .schedule-cell.disponivel { background-color: #28a745; } /* Verde */
+    .schedule-cell.ocupado    { background-color: #dc3545; } /* Vermelho */
+    .schedule-cell.almoco     { background-color: #ffc107; color: black;} /* Laranja */
+    .schedule-cell.indisponivel { background-color: #6c757d; } /* Cinza */
 
     /* Estiliza o botão dentro da célula para ser "invisível" mas clicável */
     .schedule-cell button {
@@ -48,9 +42,6 @@ st.markdown("""
         width: 100%;
         height: 100%;
         font-weight: bold;
-        font-size: 14px; /* Tamanho de fonte padrão */
-        padding: 0;
-        margin: 0;
     }
     
     /* Para o texto do botão (que é um <p> dentro do botão do Streamlit) */
@@ -63,23 +54,13 @@ st.markdown("""
     }
 
     /* Cor do texto específica para a célula de almoço */
-    .almoco button p {
+    .schedule-cell.almoco button p {
         color: black;
     }
 
     /* Remove o ponteiro de clique para horários não clicáveis */
-    .indisponivel, .indisponivel button {
+    .schedule-cell.indisponivel {
         pointer-events: none;
-    }
-
-    /* --- Media Query para Telas Pequenas (Celulares) --- */
-    @media (max-width: 768px) {
-        .schedule-cell {
-            height: 35px; /* Altura ainda menor para celular */
-        }
-        .schedule-cell button {
-            font-size: 12px; /* Fonte menor para celular */
-        }
     }
 
 </style>
@@ -399,16 +380,30 @@ else:
                 elif status == 'almoco':
                     texto_botao = "Almoço"
 
-            # ---- NOVO BLOCO DE RENDERIZAÇÃO ----
+            # Renderiza o botão dentro de um container div para aplicar o estilo CSS
             key = f"btn_{data_str}_{horario}_{barbeiro}"
             with grid_cols[i+1]:
-                # Criamos um container div com as classes CSS corretas
-                st.markdown(f'<div class="schedule-cell {status}">', unsafe_allow_html=True)
-                
-                # O botão do Streamlit vai dentro do div.
-                # O texto do botão é usado para a ação, e o CSS cuida da aparência.
-                if st.button(texto_botao, key=key, use_container_width=True, disabled=not is_clicavel):
-                    if status == 'disponivel' or (status == 'almoco' and texto_botao == 'Almoço'):
+                cor_botao = "#28a745" if status == "disponivel" else "#dc3545" if status == "ocupado" else "#ffc107"
+                cor_texto = "black" if status == "almoco" else "white"
+                botao_html = f"""
+                    <button style='
+                        background-color: {cor_botao};
+                        color: {cor_texto};
+                        border: none;
+                        border-radius: 6px;
+                        padding: 4px 8px;
+                        width: 100%;
+                        font-size: 12px;
+                        font-weight: bold;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    '  onclick="document.getElementById('{key}').click()">{texto_botao}</button>
+                    <input type="hidden" id="{key}">
+                 """
+                st.markdown(botao_html, unsafe_allow_html=True)
+                if st.button("", key=key, disabled=not is_clicavel):
+                    if status == 'disponivel':
                         st.session_state.view = 'agendar'
                         st.session_state.agendamento_info = {
                             'data_str': data_str,
@@ -425,6 +420,3 @@ else:
                             'dados': dados_agendamento
                         }
                         st.rerun()
-                
-                # Fechamos o container div
-                st.markdown('</div>', unsafe_allow_html=True)
