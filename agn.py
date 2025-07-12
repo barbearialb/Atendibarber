@@ -402,6 +402,9 @@ else:
                     <input type="hidden" id="{key}">
                  """
                 st.markdown(botao_html, unsafe_allow_html=True)
+            
+                st.markdown(f"<div style='text-align: center; font-size: 12px; color: #AAA;'>{barbeiro}</div>", unsafe_allow_html=True)
+
                 if st.button("", key=key, disabled=not is_clicavel):
                     if status == 'disponivel':
                         st.session_state.view = 'agendar'
