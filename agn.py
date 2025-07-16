@@ -413,6 +413,7 @@ else:
 
     if st.button("🔒 Fechar Horários em Lote", use_container_width=True):
         st.session_state.view = 'fechar'
+        st.session_state.data_str_selecionada = data_str
         st.rerun()
 
 
