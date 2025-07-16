@@ -338,6 +338,10 @@ elif st.session_state.view == 'cancelar':
                 st.rerun()
             else:
                 st.error("Não foi possível cancelar. O agendamento pode já ter sido removido.")
+                
+    if cols[1].button("⬅️ Voltar", use_container_width=True):
+        st.session_state.view = 'main' # Retorna para a tela principal
+        st.rerun()
 
 # ---- NOVO MODAL PARA FECHAR HORÁRIOS ----
 elif st.session_state.view == 'fechar':
