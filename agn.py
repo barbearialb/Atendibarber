@@ -282,6 +282,7 @@ if st.session_state.view == 'agendar':
                                 f"Serviços: {', '.join(servicos_selecionados) if servicos_selecionados else 'Nenhum'}"
                             )
                             enviar_email(assunto_email, mensagem_email)
+                            st.cache_data.clear()
                             st.session_state.view = 'main'
                             time.sleep(2)
                             st.rerun()
@@ -293,6 +294,7 @@ if st.session_state.view == 'agendar':
                 with st.spinner("Bloqueando para almoço..."):
                     if bloquear_horario(info['data_str'], info['horario'], info['barbeiro'], "Almoço"):
                         st.success("Horário marcado como almoço.")
+                        st.cache_data.clear()
                         st.session_state.view = 'main'
                         time.sleep(2)
                         st.rerun()
@@ -333,6 +335,7 @@ elif st.session_state.view == 'cancelar':
                     f"Barbeiro: {info['barbeiro']}"
                 )
                 enviar_email(assunto_email, mensagem_email)
+                st.cache_data.clear()
                 st.session_state.view = 'main'
                 time.sleep(2)
                 st.rerun()
@@ -383,6 +386,7 @@ elif st.session_state.view == 'fechar':
                                 break
                         if sucesso_total:
                             st.success("Horários fechados com sucesso!")
+                            st.cache_data.clear()
                             st.session_state.view = 'main'
                             time.sleep(2) # Pausa para o usuário ler a mensagem
                             st.rerun()
