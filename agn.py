@@ -341,7 +341,7 @@ elif st.session_state.view == 'cancelar':
 
 # ---- NOVO MODAL PARA FECHAR HORÁRIOS ----
 elif st.session_state.view == 'fechar':
-    st.header("🔒 Fechar Horários em Lote")
+    st.header("🔒 Fechar Horários")
     data_para_fechar = st.session_state.data_str_selecionada
     st.subheader(f"Data selecionada: {data_para_fechar}")
 
@@ -411,7 +411,7 @@ else:
     dia_mes = data_obj.day
     mes_ano = data_obj.month
 
-    if st.button("🔒 Fechar Horários em Lote", use_container_width=True):
+    if st.button("🔒 Fechar Horários", use_container_width=True):
         st.session_state.view = 'fechar'
         st.session_state.data_str_selecionada = data_str
         st.rerun()
