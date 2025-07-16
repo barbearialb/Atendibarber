@@ -32,7 +32,8 @@ st.markdown("""
     .schedule-cell.disponivel { background-color: #28a745; } /* Verde */
     .schedule-cell.ocupado    { background-color: #dc3545; } /* Vermelho */
     .schedule-cell.almoco     { background-color: #ffc107; color: black;} /* Laranja */
-    .schedule-cell.indisponivel { background-color: #6c757d; } /* Cinza */
+    .schedule-cell.indisponivel { background-color: #6c757d; } /* Cinza padrão para indisponível (SDJ, Descanso) */
+    .schedule-cell.fechado { background-color: #A9A9A9; color: black; } /* Nova classe para "Fechado" */
 
     /* Estiliza o botão dentro da célula para ser "invisível" mas clicável */
     .schedule-cell button {
@@ -189,6 +190,8 @@ def verificar_status_horario(data, horario, barbeiro):
                 return ("almoco", dados)
             elif nome == "BLOQUEADO":
                  return("ocupado", dados) # Para bloqueios de Corte+Barba
+            elif nome == "Fechado":
+                return ("fechado", dados)
             return ("ocupado", dados)
         else:
             return ("disponivel", None)
@@ -202,6 +205,27 @@ def verificar_disponibilidade_horario_seguinte(data, horario, barbeiro):
     horario_seguinte_str = horario_seguinte_dt.strftime('%H:%M')
     status, _ = verificar_status_horario(data, horario_seguinte_str, barbeiro)
     return status == "disponivel"
+
+# NOVA FUNÇÃO PARA FECHAR HORÁRIOS EM LOTE
+def fechar_horario(data, horario, barbeiro, motivo="Fechado"):
+    """Salva um registro especial para marcar um horário como Fechado."""
+    if not db: return False
+    chave_fechamento = f"{data}_{horario}_{barbeiro}"
+    try:
+        data_obj = datetime.strptime(data, '%d/%m/%Y')
+        # Cria ou sobrescreve o documento com o status "Fechado"
+        db.collection('agendamentos').document(chave_fechamento).set({
+            'nome': motivo,
+            'telefone': "INTERNO",
+            'servicos': [],
+            'barbeiro': barbeiro,
+            'data': data_obj,
+            'horario': horario
+        })
+        return True
+    except Exception as e:
+        st.error(f"Erro ao fechar horário: {e}")
+        return False
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'view' not in st.session_state:
@@ -315,11 +339,57 @@ elif st.session_state.view == 'cancelar':
             else:
                 st.error("Não foi possível cancelar. O agendamento pode já ter sido removido.")
 
-    # --- BOTÃO VOLTAR ---
-    if cols[1].button("⬅️ Voltar", use_container_width=True):
-        st.session_state.view = 'main'
-        st.rerun()
+# ---- NOVO MODAL PARA FECHAR HORÁRIOS ----
+elif st.session_state.view == 'fechar':
+    st.header("🔒 Fechar Horários em Lote")
+    data_para_fechar = st.session_state.data_str_selecionada
+    st.subheader(f"Data selecionada: {data_para_fechar}")
 
+    # Lista de horários para os seletores
+    horarios_tabela = [f"{h:02d}:{m:02d}" for h in range(7, 20) for m in (0, 30)]
+
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            horario_inicio = st.selectbox("Horário de Início", options=horarios_tabela, key="fecha_inicio")
+        with col2:
+            # O 'index' pré-seleciona o último horário da lista
+            horario_fim = st.selectbox("Horário Final", options=horarios_tabela, key="fecha_fim", index=len(horarios_tabela)-1)
+
+        barbeiro_fechar = st.selectbox("Selecione o Barbeiro", options=barbeiros, key="fecha_barbeiro")
+
+        # Aviso sobre a ação (a "cor amarela" que você mencionou)
+        st.warning("Atenção: Esta ação irá sobrescrever quaisquer agendamentos existentes no intervalo selecionado.", icon="⚠️")
+
+        btn_cols = st.columns(2)
+        if btn_cols[0].button("✔️ Confirmar Fechamento", type="primary", use_container_width=True):
+            try:
+                start_index = horarios_tabela.index(horario_inicio)
+                end_index = horarios_tabela.index(horario_fim)
+
+                if start_index > end_index:
+                    st.error("O horário de início deve ser anterior ao horário final.")
+                else:
+                    with st.spinner(f"Fechando horários para {barbeiro_fechar}..."):
+                        horarios_para_fechar = horarios_tabela[start_index:end_index+1]
+                        sucesso_total = True
+                        for horario in horarios_para_fechar:
+                            if not fechar_horario(data_para_fechar, horario, barbeiro_fechar):
+                                sucesso_total = False
+                                break
+                        if sucesso_total:
+                            st.success("Horários fechados com sucesso!")
+                            st.session_state.view = 'main'
+                            time.sleep(2) # Pausa para o usuário ler a mensagem
+                            st.rerun()
+                        else:
+                            st.error("Ocorreu um erro ao fechar um ou mais horários.")
+            except ValueError:
+                st.error("Horário selecionado inválido.")
+
+        if btn_cols[1].button("⬅️ Voltar", use_container_width=True):
+            st.session_state.view = 'main'
+            st.rerun()
 # --- TELA PRINCIPAL (GRID DE AGENDAMENTOS) ---
 else:
     st.title("Barbearia Lucas Borges - Agendamentos Internos")
@@ -340,6 +410,11 @@ else:
     dia_semana = data_obj.weekday() # 0=Segunda, 6=Domingo
     dia_mes = data_obj.day
     mes_ano = data_obj.month
+
+    if st.button("🔒 Fechar Horários em Lote", use_container_width=True):
+        st.session_state.view = 'fechar'
+        st.rerun()
+
 
     # Header da Tabela
     header_cols = st.columns([1.5, 3, 3])
@@ -379,12 +454,15 @@ else:
                     texto_botao = dados_agendamento.get('nome', 'Ocupado')
                 elif status == 'almoco':
                     texto_botao = "Almoço"
+                elif status == 'fechado':
+                    texto_botao = "Fechado"
+                    is_clicavel = True
 
             # Renderiza o botão dentro de um container div para aplicar o estilo CSS
             key = f"btn_{data_str}_{horario}_{barbeiro}"
             with grid_cols[i+1]:
-                cor_botao = "#28a745" if status == "disponivel" else "#dc3545" if status == "ocupado" else "#ffc107"
-                cor_texto = "black" if status == "almoco" else "white"
+                cor_botao = "#28a745" if status == "disponivel" else "#dc3545" if status == "ocupado" else "#ffc107" if status == "almoco" else "#A9A9A9" if status == "fechado" else "#6c757d"
+                cor_texto = "black" if status == "almoco" or status == "fechado" else "white"
                 botao_html = f"""
                     <button style='
                         background-color: {cor_botao};
@@ -414,7 +492,7 @@ else:
                             'barbeiro': barbeiro
                         }
                         st.rerun()
-                    elif status in ['ocupado', 'almoco']:
+                    elif status in ['ocupado', 'almoco', 'fechado']:
                         st.session_state.view = 'cancelar'
                         st.session_state.agendamento_info = {
                             'data_str': data_str,
@@ -423,3 +501,4 @@ else:
                             'dados': dados_agendamento
                         }
                         st.rerun()
+                        
