@@ -6,7 +6,6 @@ import smtplib
 from email.mime.text import MIMEText
 import json
 import time
-import google.cloud.firestore
 
 # --- CONFIGURAÇÃO INICIAL E ESTILOS ---
 
@@ -116,42 +115,21 @@ def enviar_email(assunto, mensagem):
         st.error(f"Erro ao enviar e-mail: {e}")
 
 def salvar_agendamento(data, horario, nome, telefone, servicos, barbeiro):
-    if not db:
-        # st.error("Firestore não inicializado. Não é possível agendar.")
-        return False
-
+    if not db: return False
     chave_agendamento = f"{data}_{horario}_{barbeiro}"
-    doc_ref = db.collection('agendamentos').document(chave_agendamento)
-
-    @google.cloud.firestore.transactional
-    def _try_agendamento_in_transaction(transaction, doc_ref, data_to_set):
-        snapshot = doc_ref.get(transaction=transaction)
-        if snapshot.exists:
-            # Se o documento já existe, significa que o slot foi ocupado.
-            # Não sobrescrevemos e indicamos que não foi possível agendar.
-            return False
-        else:
-            # Se o documento não existe, o slot está disponível.
-            # Realiza o agendamento dentro da transação.
-            transaction.set(doc_ref, data_to_set)
-            return True
-
-    data_obj = datetime.strptime(data, '%d/%m/%Y')
-    agendamento_data = {
-        'nome': nome,
-        'telefone': telefone,
-        'servicos': servicos,
-        'barbeiro': barbeiro,
-        'data': data_obj,  # Armazena como objeto datetime
-        'horario': horario
-    }
-
     try:
-        # Executa a transação. O run_transaction cuidará de retentar em caso de contenção.
-        success = db.run_transaction(lambda t: _try_agendamento_in_transaction(t, doc_ref, agendamento_data))
-        return success
+        data_obj = datetime.strptime(data, '%d/%m/%Y')
+        db.collection('agendamentos').document(chave_agendamento).set({
+            'nome': nome,
+            'telefone': telefone,
+            'servicos': servicos,
+            'barbeiro': barbeiro,
+            'data': data_obj,
+            'horario': horario
+        })
+        return True
     except Exception as e:
-        # st.error(f"Erro ao tentar agendar: {e}") # Descomente para depuração
+        st.error(f"Erro ao salvar agendamento: {e}")
         return False
 
 def cancelar_agendamento(data, horario, barbeiro):
@@ -309,7 +287,7 @@ if st.session_state.view == 'agendar':
                             time.sleep(2)
                             st.rerun()
                         else:
-                            st.error("Erro ao agendar. Este horário pode ter sido reservado por outro cliente.")
+                            st.error("Falha ao salvar. Tente novamente.")
 
             # --- BOTÃO MARCAR COMO ALMOÇO ---
             if cols[1].button("🍽️ Marcar como Almoço", use_container_width=True):
