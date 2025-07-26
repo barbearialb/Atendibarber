@@ -353,7 +353,7 @@ elif st.session_state.view == 'fechar':
     st.subheader(f"Data selecionada: {data_para_fechar}")
 
     # Lista de horários para os seletores
-    horarios_tabela = [f"{h:02d}:{m:02d}" for h in range(7, 20) for m in (0, 30)]
+    horarios_tabela = [f"{h:02d}:{m:02d}" for h in range(8, 20) for m in (0, 30)]
 
     with st.container(border=True):
         col1, col2 = st.columns(2)
@@ -433,7 +433,7 @@ else:
     st.divider()
 
     # Geração do Grid Interativo
-    horarios_tabela = [f"{h:02d}:{m:02d}" for h in range(7, 20) for m in (0, 30)]
+    horarios_tabela = [f"{h:02d}:{m:02d}" for h in range(8, 20) for m in (0, 30)]
 
     for horario in horarios_tabela:
         grid_cols = st.columns([1.5, 3, 3])
