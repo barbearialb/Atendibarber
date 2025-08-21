@@ -179,22 +179,41 @@ def verificar_status_horario(data, horario, barbeiro):
     """Verifica o status e retorna (status, dados_do_agendamento)."""
     if not db: return ("indisponivel", None)
 
-    chave_agendamento = f"{data}_{horario}_{barbeiro}"
-    doc_ref = db.collection('agendamentos').document(chave_agendamento)
+    # 1. Define a chave de agendamento PADRÃO
+    chave_agendamento_padrao = f"{data}_{horario}_{barbeiro}"
+    doc_ref_padrao = db.collection('agendamentos').document(chave_agendamento_padrao)
+    
+    # 2. Define a chave de BLOQUEIO do sistema do cliente (com _BLOQUEADO)
+    chave_agendamento_bloqueado = f"{data}_{horario}_{barbeiro}_BLOQUEADO"
+    doc_ref_bloqueado = db.collection('agendamentos').document(chave_agendamento_bloqueado)
+
     try:
-        doc = doc_ref.get()
-        if doc.exists:
-            dados = doc.to_dict()
+        # Tenta buscar os dois documentos
+        doc_padrao = doc_ref_padrao.get()
+        doc_bloqueado = doc_ref_bloqueado.get()
+
+        # Verifica se o documento PADRÃO existe
+        if doc_padrao.exists:
+            dados = doc_padrao.to_dict()
             nome = dados.get("nome", "Ocupado")
             if nome == "Almoço":
                 return ("almoco", dados)
             elif nome == "BLOQUEADO":
-                 return("ocupado", dados) # Para bloqueios de Corte+Barba
+                 return("ocupado", dados) 
             elif nome == "Fechado":
                 return ("fechado", dados)
             return ("ocupado", dados)
+            
+        # Se o padrão não existe, verifica se o documento de BLOQUEIO (do outro sistema) existe
+        elif doc_bloqueado.exists:
+            # Se encontrou o documento com _BLOQUEADO no final do ID, está ocupado.
+            # Retornamos dados genéricos de bloqueio.
+            return ("ocupado", {"nome": "BLOQUEADO"}) 
+
+        # Se nenhum dos dois documentos existe, o horário está disponível
         else:
             return ("disponivel", None)
+            
     except Exception as e:
         print(f"Erro ao verificar status: {e}")
         return ("indisponivel", None)
@@ -511,3 +530,4 @@ else:
                         }
                         st.rerun()
                         
+
