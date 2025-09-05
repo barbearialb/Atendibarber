@@ -16,6 +16,22 @@ st.set_page_config(
     layout="wide",
     page_title="Agendamento Interno - Barbearia Lucas Borges",
     page_icon="icone_192.png"
+
+splash_screen = st.empty()
+with splash_screen.container():
+    # Centraliza o conteúdo na tela
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("icone_192.png", width=150) # Verifique se o nome do ícone está correto
+        st.markdown("<h2 style='text-align: center;'>Carregando Registro...</h2>", unsafe_allow_html=True)
+    st.spinner("Aguarde...")
+
+# Simula um tempo de carregamento para a splash screen ser visível
+time.sleep(3)
+
+# Limpa a tela de carregamento para revelar o aplicativo principal
+splash_screen.empty()
+
 )
 # --- CÓDIGO PWA PARA O AMBIENTE RENDER ---
 st.markdown(
@@ -715,6 +731,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
