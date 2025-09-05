@@ -51,7 +51,7 @@ with splash_screen.container():
             """, unsafe_allow_html=True)
 
 # Simula um tempo de carregamento para a splash screen ser visível
-time.sleep(2.5)
+time.sleep(1.5)
 
 # Limpa a tela de carregamento para revelar o aplicativo principal
 splash_screen.empty()
@@ -754,6 +754,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
