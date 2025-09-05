@@ -1,0 +1,23 @@
+{
+  "name": "Agendamento Barbearia",
+  "short_name": "Agendamento",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#f63366",
+  "description": "Aplicativo de agendamento para a Barbearia Lucas Borges.",
+  "icons": [
+    {
+      "src": "logo_barb_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo_barb_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
