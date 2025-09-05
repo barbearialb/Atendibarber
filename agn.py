@@ -22,17 +22,15 @@ with splash_screen.container():
     # Centraliza o conteúdo na tela
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("icone_192.png", width=150) # Verifique se o nome do ícone está correto
-        st.markdown("<h2 style='text-align: center;'>Carregando Registro...</h2>", unsafe_allow_html=True)
-    st.spinner("Aguarde...")
+        st.image("icone_192.png", width=150)
+        st.markdown("<h2 style='text-align: center;'>Carregando...</h2>", unsafe_allow_html=True)
+    # A linha st.spinner foi REMOVIDA daqui, pois não é necessária e causava o erro.
 
 # Simula um tempo de carregamento para a splash screen ser visível
-time.sleep(3)
+time.sleep(2.5) # Reduzi um pouco para o carregamento ser mais rápido
 
 # Limpa a tela de carregamento para revelar o aplicativo principal
 splash_screen.empty()
-
-)
 # --- CÓDIGO PWA PARA O AMBIENTE RENDER ---
 st.markdown(
     """
@@ -731,6 +729,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
