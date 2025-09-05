@@ -16,6 +16,7 @@ st.set_page_config(
     layout="wide",
     page_title="Agendamento Interno - Barbearia Lucas Borges",
     page_icon="icone_192.png"
+)
 
 splash_screen = st.empty()
 with splash_screen.container():
@@ -729,6 +730,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
