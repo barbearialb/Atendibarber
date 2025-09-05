@@ -1,4 +1,5 @@
-// sw.js - Service Worker Básico e Robusto
+// sw.js - Service Worker Padronizado e Eficaz
+
 self.addEventListener('install', event => {
   console.log('Service Worker: Instalando...');
   self.skipWaiting();
@@ -10,5 +11,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Apenas responde com a requisição da rede. Essencial para o PWA funcionar.
   event.respondWith(fetch(event.request));
 });
