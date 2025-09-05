@@ -35,15 +35,20 @@ with splash_screen.container():
                 f"""
                 <div style="text-align: center;">
                     <img src="data:image/png;base64,{img_base64}" width="150">
+                    <h3>Agendamentos Internos</h3>
                     <h2>Carregando...</h2>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
         except FileNotFoundError:
-            # Caso o arquivo de imagem não seja encontrado, exibe um texto de fallback
-            st.markdown("<h2 style='text-align: center;'>Carregando... (imagem não encontrada)</h2>", unsafe_allow_html=True)
-
+            st.markdown("""
+                <div style='text-align: center;'>
+                    { # --- LINHA ADICIONADA --- #}
+                    <h3>Agendamentos Internos</h3>
+                    <h2>Carregando... (imagem não encontrada)</h2>
+                </div>
+            """, unsafe_allow_html=True)
 
 # Simula um tempo de carregamento para a splash screen ser visível
 time.sleep(2.5)
@@ -749,6 +754,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
