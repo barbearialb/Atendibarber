@@ -14,9 +14,22 @@ import time
 st.set_page_config(
     layout="wide",
     page_title="Agendamento Interno - Barbearia Lucas Borges",
-    page_icon="logo_barb.png"
+    page_icon="icone_192.png"
 )
-
+# --- CÓDIGO PWA PARA O AMBIENTE RENDER ---
+st.markdown(
+    """
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
 # CSS customizado para colorir os botões da tabela e centralizar o texto
 # CSS customizado para criar uma grade de agendamentos visual e responsiva
 st.markdown("""
@@ -75,26 +88,30 @@ st.markdown("""
 
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
-FIREBASE_CREDENTIALS = None
-EMAIL = None
-SENHA = None
+# --- CARREGANDO CREDENCIAIS DE E-MAIL DO AMBIENTE RENDER ---
+EMAIL_CREDENCIADO = os.environ.get('EMAIL_CREDENCIADO')
+EMAIL_SENHA = os.environ.get('EMAIL_SENHA')
 
+# Verifica se as credenciais de e-mail foram carregadas do Render
+if not EMAIL_CREDENCIADO or not EMAIL_SENHA:
+    st.error("ERRO CRÍTICO: As credenciais de e-mail (EMAIL_CREDENCIADO, EMAIL_SENHA) não foram configuradas nas variáveis de ambiente do Render.")
+    st.stop()
+
+
+# --- CONEXÃO COM O FIREBASE (MÉTODO PARA O RENDER) ---
 try:
-    firebase_credentials_json = st.secrets["firebase"]["FIREBASE_CREDENTIALS"]
-    FIREBASE_CREDENTIALS = json.loads(firebase_credentials_json)
-    EMAIL = st.secrets["email"]["EMAIL_CREDENCIADO"]
-    SENHA = st.secrets["email"]["EMAIL_SENHA"]
-except Exception as e:
-    st.error(f"Erro ao carregar credenciais do Streamlit Secrets: {e}")
-
-if FIREBASE_CREDENTIALS and not firebase_admin._apps:
-    try:
-        cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+    # Verifica se o app do Firebase já foi inicializado para evitar erros de recarregamento
+    if not firebase_admin._apps:
+        # Carrega as credenciais do arquivo JSON local
+        cred = credentials.Certificate("firebase-credentials.json")
         firebase_admin.initialize_app(cred)
-    except Exception as e:
-        st.error(f"Erro ao inicializar o Firebase: {e}")
+    
+    # Pega a instância do cliente Firestore
+    db = firestore.client()
 
-db = firestore.client() if firebase_admin._apps else None
+except Exception as e:
+    st.error(f"Erro ao conectar com o Firebase. Verifique se o arquivo 'firebase-credentials.json' está na pasta correta: {e}")
+    st.stop()
 
 # --- DADOS BÁSICOS ---
 servicos = ["Tradicional", "Social", "Degradê", "Pezim", "Navalhado", "Barba", "Abordagem de visagismo", "Consultoria de visagismo"]
@@ -697,6 +714,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
