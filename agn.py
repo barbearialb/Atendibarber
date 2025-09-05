@@ -8,6 +8,7 @@ import smtplib
 from email.mime.text import MIMEText
 import json
 import time
+import base64
 
 # --- CONFIGURAÇÃO INICIAL E ESTILOS ---
 
@@ -23,15 +24,33 @@ with splash_screen.container():
     # Centraliza o conteúdo na tela
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("icone_192.png", width=150)
-        st.markdown("<h2 style='text-align: center;'>Carregando...</h2>", unsafe_allow_html=True)
-    # A linha st.spinner foi REMOVIDA daqui, pois não é necessária e causava o erro.
+        try:
+            # 1. Abre o arquivo da imagem em modo de leitura binária ('rb')
+            with open("icone_192.png", "rb") as f:
+                # 2. Codifica o conteúdo do arquivo para Base64 e o converte para uma string
+                img_base64 = base64.b64encode(f.read()).decode()
+
+            # 3. Usa a string Base64 como fonte (src) da imagem no HTML
+            st.markdown(
+                f"""
+                <div style="text-align: center;">
+                    <img src="data:image/png;base64,{img_base64}" width="150">
+                    <h2>Carregando...</h2>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        except FileNotFoundError:
+            # Caso o arquivo de imagem não seja encontrado, exibe um texto de fallback
+            st.markdown("<h2 style='text-align: center;'>Carregando... (imagem não encontrada)</h2>", unsafe_allow_html=True)
+
 
 # Simula um tempo de carregamento para a splash screen ser visível
-time.sleep(2.5) # Reduzi um pouco para o carregamento ser mais rápido
+time.sleep(2.5)
 
 # Limpa a tela de carregamento para revelar o aplicativo principal
 splash_screen.empty()
+
 # --- CÓDIGO PWA PARA O AMBIENTE RENDER ---
 st.markdown(
     """
@@ -730,6 +749,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
