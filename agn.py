@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud.firestore_v1.field_path import FieldPath
@@ -8,7 +7,57 @@ import smtplib
 from email.mime.text import MIMEText
 import json
 import time
+import os
 import base64
+import streamlit.components.v1 as components
+# --- CONFIGURAÇÃO INICIAL E ESTILOS ---
+
+def injetar_pwa_head():
+    """
+    Esta função injeta um script no corpo da página que, por sua vez,
+    adiciona as tags necessárias ao <head> e registra o service worker.
+    Este método é mais robusto e não cria elementos visíveis na tela.
+    """
+    # Caminho para os arquivos na pasta 'static'
+    manifest_url = "/static/manifest.json"
+    service_worker_url = "/static/sw.js"
+    
+    # Código JavaScript para ser injetado.
+    # Ele cria os elementos <link> e <meta> e os anexa ao <head>.
+    pwa_code = f"""
+        <script>
+            // URLs dos arquivos
+            const manifestUrl = '{manifest_url}';
+            const serviceWorkerUrl = '{service_worker_url}';
+
+            // 1. Adicionar o link do Manifest ao <head>
+            const manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = manifestUrl;
+            document.head.appendChild(manifestLink);
+
+            // 2. Adicionar a meta tag de theme-color ao <head>
+            const themeColorMeta = document.createElement('meta');
+            themeColorMeta.name = 'theme-color';
+            themeColorMeta.content = '#f63366'; // Cor do seu manifest
+            document.head.appendChild(themeColorMeta);
+
+            // 3. Registrar o Service Worker
+            if ('serviceWorker' in navigator) {{
+                navigator.serviceWorker.register(serviceWorkerUrl)
+                    .then(function(registration) {{
+                        console.log('PWA: Service Worker registrado com sucesso.', registration);
+                    }})
+                    .catch(function(error) {{
+                        console.log('PWA: Erro ao registrar Service Worker.', error);
+                    }});
+            }}
+        </script>
+    """
+    # Usando st.components.v1.html para injetar o script de forma invisível
+    # O height=0 é crucial para que ele não ocupe espaço na página.
+    components.html(pwa_code, height=0)
+
 
 # --- CONFIGURAÇÃO INICIAL E ESTILOS ---
 
@@ -16,70 +65,19 @@ import base64
 st.set_page_config(
     layout="wide",
     page_title="Agendamento Interno - Barbearia Lucas Borges",
+    page_icon="logo_barb.png"
+)
+
+# CHAMADA DA FUNÇÃO PWA LOGO NO INÍCIO
+injetar_pwa_head()
+
+# Configuração da página para layout mais amplo
+st.set_page_config(
+    layout="wide",
+    page_title="Agendamento Interno - Barbearia Lucas Borges",
     page_icon="icone_192.png"
 )
-if 'splash_shown' not in st.session_state:
-    st.session_state.splash_shown = False
-    
-if 'view' not in st.session_state:
-    st.session_state.view = 'main' # 'main', 'agendar', 'cancelar'
-    st.session_state.selected_data = None
-    st.session_state.agendamento_info = {}
-    
-if not st.session_state.splash_shown:
-    splash_screen = st.empty()
-    with splash_screen.container():
-        # Centraliza o conteúdo na tela
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            try:
-                # 1. Abre o arquivo da imagem em modo de leitura binária ('rb')
-                with open("icone_192.png", "rb") as f:
-                    # 2. Codifica o conteúdo do arquivo para Base64 e o converte para uma string
-                    img_base64 = base64.b64encode(f.read()).decode()
-    
-                # 3. Usa a string Base64 como fonte (src) da imagem no HTML
-                st.markdown(
-                    f"""
-                    <div style="text-align: center;">
-                        <img src="data:image/png;base64,{img_base64}" width="150">
-                        <h3>Agendamentos Internos</h3>
-                        <h2>Carregando...</h2>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            except FileNotFoundError:
-                st.markdown("""
-                    <div style='text-align: center;'>
-                        { # --- LINHA ADICIONADA --- #}
-                        <h3>Agendamentos Internos</h3>
-                        <h2>Carregando... (imagem não encontrada)</h2>
-                    </div>
-                """, unsafe_allow_html=True)
-    
-    # Simula um tempo de carregamento para a splash screen ser visível
-    time.sleep(1.5)
-    
-    # Limpa a tela de carregamento para revelar o aplicativo principal
-    splash_screen.empty()
 
-    st.session_state.splash_shown = True
-
-# --- CÓDIGO PWA PARA O AMBIENTE RENDER ---
-st.markdown(
-    """
-    <link rel="manifest" href="manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
-            });
-        }
-    </script>
-    """,
-    unsafe_allow_html=True,
-)
 # CSS customizado para colorir os botões da tabela e centralizar o texto
 # CSS customizado para criar uma grade de agendamentos visual e responsiva
 st.markdown("""
@@ -138,30 +136,38 @@ st.markdown("""
 
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
-# --- CARREGANDO CREDENCIAIS DE E-MAIL DO AMBIENTE RENDER ---
-EMAIL_CREDENCIADO = os.environ.get('EMAIL_CREDENCIADO')
-EMAIL_SENHA = os.environ.get('EMAIL_SENHA')
+FIREBASE_CREDENTIALS = None
+EMAIL = None
+SENHA = None
 
-# Verifica se as credenciais de e-mail foram carregadas do Render
-if not EMAIL_CREDENCIADO or not EMAIL_SENHA:
-    st.error("ERRO CRÍTICO: As credenciais de e-mail (EMAIL_CREDENCIADO, EMAIL_SENHA) não foram configuradas nas variáveis de ambiente do Render.")
-    st.stop()
-
-
-# --- CONEXÃO COM O FIREBASE (MÉTODO PARA O RENDER) ---
 try:
-    # Verifica se o app do Firebase já foi inicializado para evitar erros de recarregamento
-    if not firebase_admin._apps:
-        # Carrega as credenciais do arquivo JSON local
-        cred = credentials.Certificate("firebase-credentials.json")
-        firebase_admin.initialize_app(cred)
-    
-    # Pega a instância do cliente Firestore
-    db = firestore.client()
+    # 1. Carrega as credenciais do Firebase a partir de uma variável de ambiente.
+    #    Usaremos Base64 para garantir que o JSON de múltiplas linhas seja lido corretamente.
+    firebase_credentials_b64 = os.environ.get("FIREBASE_CREDENTIALS_B64")
+    if firebase_credentials_b64:
+        firebase_credentials_json = base64.b64decode(firebase_credentials_b64).decode('utf-8')
+        FIREBASE_CREDENTIALS = json.loads(firebase_credentials_json)
+    else:
+        st.warning("Credenciais do Firebase não encontradas nas variáveis de ambiente.")
+
+    # 2. Carrega as credenciais de e-mail de variáveis de ambiente.
+    EMAIL = os.environ.get("EMAIL_CREDENCIADO")
+    SENHA = os.environ.get("EMAIL_SENHA")
+
+    if not EMAIL or not SENHA:
+        st.warning("Credenciais de e-mail não encontradas nas variáveis de ambiente.")
 
 except Exception as e:
-    st.error(f"Erro ao conectar com o Firebase. Verifique se o arquivo 'firebase-credentials.json' está na pasta correta: {e}")
-    st.stop()
+    st.error(f"Erro ao carregar credenciais do ambiente: {e}")
+
+if FIREBASE_CREDENTIALS and not firebase_admin._apps:
+    try:
+        cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"Erro ao inicializar o Firebase: {e}")
+
+db = firestore.client() if firebase_admin._apps else None
 
 # --- DADOS BÁSICOS ---
 servicos = ["Tradicional", "Social", "Degradê", "Pezim", "Navalhado", "Barba", "Abordagem de visagismo", "Consultoria de visagismo"]
@@ -169,20 +175,25 @@ barbeiros = ["Aluizio", "Lucas Borges"]
 
 
 # --- FUNÇÕES DE BACKEND (Adaptadas e Novas) ---
-
-def enviar_email(assunto, mensagem):
-    if not EMAIL or not SENHA:
-        st.warning("Credenciais de e-mail não configuradas.")
+# VERSÃO CORRETA DA FUNÇÃO
+def enviar_email(assunto, mensagem, email_remetente, senha_remetente):
+    """
+    Envia um e-mail usando as credenciais fornecidas como parâmetros.
+    """
+    if not email_remetente or not senha_remetente:
+        st.warning("Credenciais de e-mail não configuradas para envio.")
         return
     try:
         msg = MIMEText(mensagem)
         msg['Subject'] = assunto
-        msg['From'] = EMAIL
-        msg['To'] = EMAIL
+        msg['From'] = email_remetente
+        msg['To'] = email_remetente  # Envia para o próprio e-mail como notificação
+
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
-            server.login(EMAIL, SENHA)
-            server.sendmail(EMAIL, EMAIL, msg.as_string())
+            # Usa os parâmetros recebidos para fazer o login
+            server.login(email_remetente, senha_remetente)
+            server.sendmail(email_remetente, email_remetente, msg.as_string())
     except Exception as e:
         st.error(f"Erro ao enviar e-mail: {e}")
 
@@ -346,6 +357,12 @@ def desbloquear_horario_especifico(data_obj, horario, barbeiro):
         st.error(f"Erro ao tentar desbloquear horário: {e}")
         return False
 
+# --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
+if 'view' not in st.session_state:
+    st.session_state.view = 'main' # 'main', 'agendar', 'cancelar'
+    st.session_state.selected_data = None
+    st.session_state.agendamento_info = {}
+
 # --- LÓGICA DE NAVEGAÇÃO E EXIBIÇÃO (MODAIS) ---
 
 # ---- MODAL DE AGENDAMENTO ----
@@ -407,7 +424,7 @@ if st.session_state.view == 'agendar':
                                 f"Horário: {horario}\nBarbeiro: {barbeiro}\n"
                                 f"Serviços: {', '.join(servicos_selecionados) if servicos_selecionados else 'Nenhum'}"
                             )
-                            enviar_email(assunto_email, mensagem_email)
+                            enviar_email(assunto_email, mensagem_email, EMAIL, SENHA)
                             
                             st.cache_data.clear()
                             st.session_state.view = 'agenda'
@@ -475,9 +492,11 @@ elif st.session_state.view == 'cancelar':
 
                 st.success("Horário liberado com sucesso!")
                 
-                # Enviamos o e-mail com os dados corretos
                 assunto_email = f"Cancelamento/Liberação: {nome} em {data_str_display}"
-                enviar_email(assunto_email, f"O agendamento para {nome} às {horario} com {barbeiro} foi cancelado/liberado.")
+                mensagem_email = f"O agendamento para {nome} às {horario} com {barbeiro} foi cancelado/liberado."
+                
+                # Enviamos o e-mail com os dados corretos
+                enviar_email(assunto_email, mensagem_email, EMAIL, SENHA)
                 
                 # Voltamos para a tela da agenda
                 st.session_state.view = 'agenda'
@@ -758,11 +777,6 @@ else:
                         st.rerun()
                         
     
-
-
-
-
-
 
 
 
