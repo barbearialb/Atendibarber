@@ -9,7 +9,6 @@ import json
 import time
 import os
 import base64
-import streamlit.components.v1 as components
 # --- CONFIGURAÇÃO INICIAL E ESTILOS ---
 
 def injetar_pwa_head():
@@ -56,7 +55,7 @@ def injetar_pwa_head():
     """
     # Usando st.components.v1.html para injetar o script de forma invisível
     # O height=0 é crucial para que ele não ocupe espaço na página.
-    components.html(pwa_code, height=0)
+    st.markdown(pwa_code, unsafe_allow_html=True)
 
 # CHAMADA DA FUNÇÃO PWA LOGO NO INÍCIO
 injetar_pwa_head()
@@ -770,6 +769,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
