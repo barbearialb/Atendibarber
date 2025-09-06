@@ -74,7 +74,7 @@ st.markdown("""
 <style>
     /* --- CÓDIGO ADICIONADO PARA REMOVER O ESPAÇO NO TOPO --- */
     div.block-container {
-        padding-top: 1rem; /* Ajuste este valor se necessário, ex: 0.5rem ou 0rem */
+        padding-top: 0rem; /* Ajuste este valor se necessário, ex: 0.5rem ou 0rem */
     }
     /* --------------------------------------------------------- */
     
@@ -770,6 +770,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
