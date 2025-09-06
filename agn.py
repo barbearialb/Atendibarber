@@ -58,16 +58,6 @@ def injetar_pwa_head():
     # O height=0 é crucial para que ele não ocupe espaço na página.
     components.html(pwa_code, height=0)
 
-
-# --- CONFIGURAÇÃO INICIAL E ESTILOS ---
-
-# Configuração da página para layout mais amplo
-st.set_page_config(
-    layout="wide",
-    page_title="Agendamento Interno - Barbearia Lucas Borges",
-    page_icon="logo_barb.png"
-)
-
 # CHAMADA DA FUNÇÃO PWA LOGO NO INÍCIO
 injetar_pwa_head()
 
@@ -774,6 +764,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
