@@ -137,28 +137,23 @@ st.markdown("""
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
 FIREBASE_CREDENTIALS = None
-EMAIL = None
-SENHA = None
+EMAIL = os.environ.get("EMAIL_CREDENCIADO")
+SENHA = os.environ.get("EMAIL_SENHA")
 
-try:
-    # 1. Carrega as credenciais do Firebase a partir de uma variável de ambiente em Base64
-    firebase_credentials_b64 = os.environ.get("FIREBASE_CREDENTIALS_B64")
-    if firebase_credentials_b64:
-        # Descodifica a string Base64 para o JSON original
-        firebase_credentials_json = base64.b64decode(firebase_credentials_b64).decode('utf-8')
-        FIREBASE_CREDENTIALS = json.loads(firebase_credentials_json)
-    else:
-        st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_CREDENTIALS_B64' não foi encontrada no Render.")
+# 2. Carrega o caminho para o ficheiro de credenciais do Firebase
+#    (O Render coloca o caminho nesta variável de ambiente)
+FIREBASE_SECRET_PATH = os.environ.get("FIREBASE_SECRET_PATH") 
+FIREBASE_CREDENTIALS = None
 
-    # 2. Carrega as credenciais de e-mail de variáveis de ambiente
-    EMAIL = os.environ.get("EMAIL_CREDENCIADO")
-    SENHA = os.environ.get("EMAIL_SENHA")
-
-    if not EMAIL or not SENHA:
-        st.warning("AVISO: As credenciais de e-mail ('EMAIL_CREDENCIADO', 'EMAIL_SENHA') não foram encontradas nas variáveis de ambiente.")
-
-except Exception as e:
-    st.error(f"Ocorreu um erro ao carregar as credenciais do ambiente: {e}")
+if FIREBASE_SECRET_PATH:
+    try:
+        # Abre e lê o ficheiro JSON a partir do caminho fornecido
+        with open(FIREBASE_SECRET_PATH, 'r') as f:
+            FIREBASE_CREDENTIALS = json.load(f)
+    except Exception as e:
+        st.error(f"ERRO ao ler o Secret File do Firebase: {e}")
+else:
+    st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_SECRET_PATH' não está definida. Verifique as suas configurações no Render.")
 
 # --- Inicialização do Firebase ---
 if FIREBASE_CREDENTIALS and not firebase_admin._apps:
@@ -779,6 +774,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
