@@ -141,33 +141,35 @@ EMAIL = None
 SENHA = None
 
 try:
-    # 1. Carrega as credenciais do Firebase a partir de uma variável de ambiente.
-    #    Usaremos Base64 para garantir que o JSON de múltiplas linhas seja lido corretamente.
+    # 1. Carrega as credenciais do Firebase a partir de uma variável de ambiente em Base64
     firebase_credentials_b64 = os.environ.get("FIREBASE_CREDENTIALS_B64")
     if firebase_credentials_b64:
+        # Descodifica a string Base64 para o JSON original
         firebase_credentials_json = base64.b64decode(firebase_credentials_b64).decode('utf-8')
         FIREBASE_CREDENTIALS = json.loads(firebase_credentials_json)
     else:
-        st.warning("Credenciais do Firebase não encontradas nas variáveis de ambiente.")
+        st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_CREDENTIALS_B64' não foi encontrada no Render.")
 
-    # 2. Carrega as credenciais de e-mail de variáveis de ambiente.
+    # 2. Carrega as credenciais de e-mail de variáveis de ambiente
     EMAIL = os.environ.get("EMAIL_CREDENCIADO")
     SENHA = os.environ.get("EMAIL_SENHA")
 
     if not EMAIL or not SENHA:
-        st.warning("Credenciais de e-mail não encontradas nas variáveis de ambiente.")
+        st.warning("AVISO: As credenciais de e-mail ('EMAIL_CREDENCIADO', 'EMAIL_SENHA') não foram encontradas nas variáveis de ambiente.")
 
 except Exception as e:
-    st.error(f"Erro ao carregar credenciais do ambiente: {e}")
+    st.error(f"Ocorreu um erro ao carregar as credenciais do ambiente: {e}")
 
+# --- Inicialização do Firebase ---
 if FIREBASE_CREDENTIALS and not firebase_admin._apps:
     try:
         cred = credentials.Certificate(FIREBASE_CREDENTIALS)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Erro ao inicializar o Firebase: {e}")
+        st.error(f"Erro ao inicializar a aplicação Firebase: {e}")
 
 db = firestore.client() if firebase_admin._apps else None
+
 
 # --- DADOS BÁSICOS ---
 servicos = ["Tradicional", "Social", "Degradê", "Pezim", "Navalhado", "Barba", "Abordagem de visagismo", "Consultoria de visagismo"]
@@ -777,6 +779,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
