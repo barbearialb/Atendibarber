@@ -72,6 +72,12 @@ st.set_page_config(
 # CSS customizado para criar uma grade de agendamentos visual e responsiva
 st.markdown("""
 <style>
+    /* --- CÓDIGO ADICIONADO PARA REMOVER O ESPAÇO NO TOPO --- */
+    div.block-container {
+        padding-top: 1rem; /* Ajuste este valor se necessário, ex: 0.5rem ou 0rem */
+    }
+    /* --------------------------------------------------------- */
+    
     /* Define a célula base do agendamento */
     .schedule-cell {
         height: 50px;              /* Altura fixa para cada célula */
@@ -764,6 +770,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
