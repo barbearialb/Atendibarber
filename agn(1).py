@@ -7,8 +7,69 @@ import smtplib
 from email.mime.text import MIMEText
 import json
 import time
+import os
+import base64
+import streamlit.components.v1 as components
+# --- CONFIGURAÇÃO INICIAL E ESTILOS ---
+
+def injetar_pwa_head():
+    """
+    Esta função injeta um script no corpo da página que, por sua vez,
+    adiciona as tags necessárias ao <head> e registra o service worker.
+    Este método é mais robusto e não cria elementos visíveis na tela.
+    """
+    # Caminho para os arquivos na pasta 'static'
+    manifest_url = "/static/manifest.json"
+    service_worker_url = "/static/sw.js"
+    
+    # Código JavaScript para ser injetado.
+    # Ele cria os elementos <link> e <meta> e os anexa ao <head>.
+    pwa_code = f"""
+        <script>
+            // URLs dos arquivos
+            const manifestUrl = '{manifest_url}';
+            const serviceWorkerUrl = '{service_worker_url}';
+
+            // 1. Adicionar o link do Manifest ao <head>
+            const manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = manifestUrl;
+            document.head.appendChild(manifestLink);
+
+            // 2. Adicionar a meta tag de theme-color ao <head>
+            const themeColorMeta = document.createElement('meta');
+            themeColorMeta.name = 'theme-color';
+            themeColorMeta.content = '#f63366'; // Cor do seu manifest
+            document.head.appendChild(themeColorMeta);
+
+            // 3. Registrar o Service Worker
+            if ('serviceWorker' in navigator) {{
+                navigator.serviceWorker.register(serviceWorkerUrl)
+                    .then(function(registration) {{
+                        console.log('PWA: Service Worker registrado com sucesso.', registration);
+                    }})
+                    .catch(function(error) {{
+                        console.log('PWA: Erro ao registrar Service Worker.', error);
+                    }});
+            }}
+        </script>
+    """
+    # Usando st.components.v1.html para injetar o script de forma invisível
+    # O height=0 é crucial para que ele não ocupe espaço na página.
+    components.html(pwa_code, height=0)
+
 
 # --- CONFIGURAÇÃO INICIAL E ESTILOS ---
+
+# Configuração da página para layout mais amplo
+st.set_page_config(
+    layout="wide",
+    page_title="Agendamento Interno - Barbearia Lucas Borges",
+    page_icon="logo_barb.png"
+)
+
+# CHAMADA DA FUNÇÃO PWA LOGO NO INÍCIO
+injetar_pwa_head()
 
 # Configuração da página para layout mais amplo
 st.set_page_config(
@@ -80,12 +141,24 @@ EMAIL = None
 SENHA = None
 
 try:
-    firebase_credentials_json = st.secrets["firebase"]["FIREBASE_CREDENTIALS"]
-    FIREBASE_CREDENTIALS = json.loads(firebase_credentials_json)
-    EMAIL = st.secrets["email"]["EMAIL_CREDENCIADO"]
-    SENHA = st.secrets["email"]["EMAIL_SENHA"]
+    # 1. Carrega as credenciais do Firebase a partir de uma variável de ambiente.
+    #    Usaremos Base64 para garantir que o JSON de múltiplas linhas seja lido corretamente.
+    firebase_credentials_b64 = os.environ.get("FIREBASE_CREDENTIALS_B64")
+    if firebase_credentials_b64:
+        firebase_credentials_json = base64.b64decode(firebase_credentials_b64).decode('utf-8')
+        FIREBASE_CREDENTIALS = json.loads(firebase_credentials_json)
+    else:
+        st.warning("Credenciais do Firebase não encontradas nas variáveis de ambiente.")
+
+    # 2. Carrega as credenciais de e-mail de variáveis de ambiente.
+    EMAIL = os.environ.get("EMAIL_CREDENCIADO")
+    SENHA = os.environ.get("EMAIL_SENHA")
+
+    if not EMAIL or not SENHA:
+        st.warning("Credenciais de e-mail não encontradas nas variáveis de ambiente.")
+
 except Exception as e:
-    st.error(f"Erro ao carregar credenciais do Streamlit Secrets: {e}")
+    st.error(f"Erro ao carregar credenciais do ambiente: {e}")
 
 if FIREBASE_CREDENTIALS and not firebase_admin._apps:
     try:
@@ -704,6 +777,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
