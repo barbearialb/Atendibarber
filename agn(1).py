@@ -75,7 +75,7 @@ injetar_pwa_head()
 st.set_page_config(
     layout="wide",
     page_title="Agendamento Interno - Barbearia Lucas Borges",
-    page_icon="logo_barb.png"
+    page_icon="icone_192.png"
 )
 
 # CSS customizado para colorir os botões da tabela e centralizar o texto
@@ -777,6 +777,7 @@ else:
                         st.rerun()
                         
     
+
 
 
 
