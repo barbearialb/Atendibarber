@@ -94,59 +94,37 @@ st.markdown("""
 
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
-@st.cache_resource
-def conectar_ao_firebase():
-    """
-    Conecta-se ao Firebase usando as credenciais fornecidas por uma variável de ambiente 
-    que aponta para um arquivo secreto (padrão do Render).
+FIREBASE_CREDENTIALS = None
+EMAIL = os.environ.get("EMAIL_CREDENCIADO")
+SENHA = os.environ.get("EMAIL_SENHA")
 
-    A conexão é cacheada para evitar reinicializações desnecessárias.
-    """
-    print(">>> EXECUTANDO CONEXÃO COM FIREBASE VIA SECRET PATH (Cache não utilizado!)")
+# 2. Carrega o caminho para o ficheiro de credenciais do Firebase
+#    (O Render coloca o caminho nesta variável de ambiente)
+FIREBASE_SECRET_PATH = os.environ.get("FIREBASE_SECRET_PATH")
 
-    # 1. Pega o caminho do arquivo secreto a partir da variável de ambiente
-    firebase_secret_path = os.environ.get("FIREBASE_SECRET_PATH")
-    
-    if not firebase_secret_path:
-        st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_SECRET_PATH' não está definida.")
-        return None # Retorna None se a variável não existir
-
-    # 2. Tenta ler e carregar as credenciais do arquivo
+if FIREBASE_SECRET_PATH:
     try:
-        with open(firebase_secret_path, 'r') as f:
-            firebase_credentials = json.load(f)
+        # Abre e lê o ficheiro JSON a partir do caminho fornecido
+        with open(FIREBASE_SECRET_PATH, 'r') as f:
+            FIREBASE_CREDENTIALS = json.load(f)
     except FileNotFoundError:
-        st.error(f"ERRO: O arquivo de credenciais não foi encontrado no caminho: {firebase_secret_path}")
-        return None
+        st.error(f"ERRO: O arquivo de credenciais não foi encontrado no caminho: {FIREBASE_SECRET_PATH}")
     except json.JSONDecodeError:
         st.error("ERRO: O conteúdo do arquivo de credenciais não é um JSON válido.")
-        return None
     except Exception as e:
         st.error(f"ERRO ao ler o Secret File do Firebase: {e}")
-        return None
+else:
+    st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_SECRET_PATH' não está definida. Verifique as suas configurações no Render.")
 
-    # 3. Inicializa a aplicação Firebase se ainda não foi inicializada
+# --- Inicialização do Firebase ---
+if FIREBASE_CREDENTIALS and not firebase_admin._apps:
     try:
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(firebase_credentials)
-            firebase_admin.initialize_app(cred)
-        
-        # 4. Retorna o cliente do Firestore, que será o objeto guardado em cache
-        return firestore.client()
-        
+        cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+        firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Erro ao inicializar a aplicação Firebase com as credenciais: {e}")
-        return None
+        st.error(f"Erro ao inicializar a aplicação Firebase: {e}")
 
-# --- INICIALIZAÇÃO DO FIREBASE USANDO A FUNÇÃO CACHEADA ---
-# Todo aquele bloco de código anterior é substituído por esta única chamada.
-db = conectar_ao_firebase()
-
-# --- VERIFICAÇÃO DE SEGURANÇA ---
-# Se a conexão falhou por qualquer um dos motivos acima, o app para aqui.
-if db is None:
-    st.error("A conexão com o banco de dados falhou. O aplicativo não pode continuar.")
-    st.stop()
+db = firestore.client() if firebase_admin._apps else None
 
 
 # --- DADOS BÁSICOS ---
@@ -756,7 +734,6 @@ else:
                         }
                         st.rerun()
                         
-
 
 
 
