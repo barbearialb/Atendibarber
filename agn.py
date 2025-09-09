@@ -7,6 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 import time
 import os
+import json
 from PIL import Image
 
 # --- DEFINIÇÃO DE CAMINHOS SEGUROS (PARA O FAVICON) ---
@@ -99,14 +100,17 @@ SENHA = os.environ.get("EMAIL_SENHA")
 
 # 2. Carrega o caminho para o ficheiro de credenciais do Firebase
 #    (O Render coloca o caminho nesta variável de ambiente)
-FIREBASE_SECRET_PATH = os.environ.get("FIREBASE_SECRET_PATH") 
-FIREBASE_CREDENTIALS = None
+FIREBASE_SECRET_PATH = os.environ.get("FIREBASE_SECRET_PATH")
 
 if FIREBASE_SECRET_PATH:
     try:
         # Abre e lê o ficheiro JSON a partir do caminho fornecido
         with open(FIREBASE_SECRET_PATH, 'r') as f:
             FIREBASE_CREDENTIALS = json.load(f)
+    except FileNotFoundError:
+        st.error(f"ERRO: O arquivo de credenciais não foi encontrado no caminho: {FIREBASE_SECRET_PATH}")
+    except json.JSONDecodeError:
+        st.error("ERRO: O conteúdo do arquivo de credenciais não é um JSON válido.")
     except Exception as e:
         st.error(f"ERRO ao ler o Secret File do Firebase: {e}")
 else:
@@ -730,4 +734,5 @@ else:
                         }
                         st.rerun()
                         
+
 
