@@ -5,66 +5,28 @@ from google.cloud.firestore_v1.field_path import FieldPath
 from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
-import json
 import time
 import os
-import base64
-# --- CONFIGURAÇÃO INICIAL E ESTILOS ---
+from PIL import Image
 
-def injetar_pwa_head():
-    """
-    Esta função injeta um script no corpo da página que, por sua vez,
-    adiciona as tags necessárias ao <head> e registra o service worker.
-    Este método é mais robusto e não cria elementos visíveis na tela.
-    """
-    # Caminho para os arquivos na pasta 'static'
-    manifest_url = "/static/manifest.json"
-    service_worker_url = "/static/sw.js"
-    
-    # Código JavaScript para ser injetado.
-    # Ele cria os elementos <link> e <meta> e os anexa ao <head>.
-    pwa_code = f"""
-        <script>
-            // URLs dos arquivos
-            const manifestUrl = '{manifest_url}';
-            const serviceWorkerUrl = '{service_worker_url}';
+# --- DEFINIÇÃO DE CAMINHOS SEGUROS (PARA O FAVICON) ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-            // 1. Adicionar o link do Manifest ao <head>
-            const manifestLink = document.createElement('link');
-            manifestLink.rel = 'manifest';
-            manifestLink.href = manifestUrl;
-            document.head.appendChild(manifestLink);
+# --- CARREGAR O ÍCONE DA PÁGINA ---
+try:
+    # Lembre-se que o ícone precisa estar na pasta 'static' do seu projeto no Render
+    favicon_path = os.path.join(STATIC_DIR, "icon_any_192.png")
+    favicon = Image.open(favicon_path)
+except FileNotFoundError:
+    st.warning("Arquivo 'icon_any_192.png' não encontrado na pasta 'static'. Usando emoji padrão.")
+    favicon = "📅" # Um emoji de calendário como alternativa
 
-            // 2. Adicionar a meta tag de theme-color ao <head>
-            const themeColorMeta = document.createElement('meta');
-            themeColorMeta.name = 'theme-color';
-            themeColorMeta.content = '#f63366'; // Cor do seu manifest
-            document.head.appendChild(themeColorMeta);
-
-            // 3. Registrar o Service Worker
-            if ('serviceWorker' in navigator) {{
-                navigator.serviceWorker.register(serviceWorkerUrl)
-                    .then(function(registration) {{
-                        console.log('PWA: Service Worker registrado com sucesso.', registration);
-                    }})
-                    .catch(function(error) {{
-                        console.log('PWA: Erro ao registrar Service Worker.', error);
-                    }});
-            }}
-        </script>
-    """
-    # Usando st.components.v1.html para injetar o script de forma invisível
-    # O height=0 é crucial para que ele não ocupe espaço na página.
-    st.markdown(pwa_code, unsafe_allow_html=True)
-
-# CHAMADA DA FUNÇÃO PWA LOGO NO INÍCIO
-injetar_pwa_head()
-
-# Configuração da página para layout mais amplo
+# --- CONFIGURAÇÕES DA PÁGINA ---
 st.set_page_config(
-    layout="wide",
-    page_title="Agendamento Interno - Barbearia Lucas Borges",
-    page_icon="icone_192.png"
+    page_title="Agendamento Interno",
+    page_icon=favicon,
+    layout="wide" # ou "wide", como preferir
 )
 
 # CSS customizado para colorir os botões da tabela e centralizar o texto
@@ -768,3 +730,4 @@ else:
                         }
                         st.rerun()
                         
+
