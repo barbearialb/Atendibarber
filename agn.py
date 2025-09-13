@@ -162,6 +162,7 @@ def buscar_agendamentos_do_dia(data_obj):
     Busca todos os agendamentos do dia em UMA ÚNICA CONSULTA e retorna um dicionário.
     A chave é o ID do documento, e o valor são os dados do agendamento.
     """
+    global db
     if not db:
         st.error("Firestore não inicializado.")
         return {}
@@ -182,6 +183,7 @@ def buscar_agendamentos_do_dia(data_obj):
 
 # FUNÇÕES DE ESCRITA (JÁ CORRIGIDAS NA NOSSA CONVERSA)
 def salvar_agendamento(data_obj, horario, nome, telefone, servicos, barbeiro):
+    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_agendamento = f"{data_para_id}_{horario}_{barbeiro}"
@@ -198,6 +200,7 @@ def salvar_agendamento(data_obj, horario, nome, telefone, servicos, barbeiro):
         return False
 
 def bloquear_horario(data_obj, horario, barbeiro, motivo="BLOQUEADO"):
+    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_bloqueio = f"{data_para_id}_{horario}_{barbeiro}_BLOQUEADO" if motivo == "BLOQUEADO" else f"{data_para_id}_{horario}_{barbeiro}"
@@ -219,6 +222,7 @@ def desbloquear_horario(data_obj, horario_agendado, barbeiro):
     """
     Remove o documento de bloqueio (_BLOQUEADO) referente a um agendamento de Corte+Barba.
     """
+    global db
     if not db: return
     try:
         # Calcula o horário seguinte que foi bloqueado
@@ -239,6 +243,7 @@ def desbloquear_horario(data_obj, horario_agendado, barbeiro):
 
 def verificar_disponibilidade_especifica(data_obj, horario, barbeiro):
     """ Verifica de forma eficiente se um único horário está livre. """
+    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     id_padrao = f"{data_para_id}_{horario}_{barbeiro}"
@@ -255,6 +260,7 @@ def verificar_disponibilidade_especifica(data_obj, horario, barbeiro):
         return False
 
 def cancelar_agendamento(data_obj, horario, barbeiro):
+    global db
     if not db: return None
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_agendamento = f"{data_para_id}_{horario}_{barbeiro}"
@@ -271,6 +277,7 @@ def cancelar_agendamento(data_obj, horario, barbeiro):
         return None
 
 def fechar_horario(data_obj, horario, barbeiro):
+    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_bloqueio = f"{data_para_id}_{horario}_{barbeiro}"
@@ -294,6 +301,7 @@ def desbloquear_horario_especifico(data_obj, horario, barbeiro):
     Remove um agendamento/bloqueio específico, tentando apagar tanto o ID
     padrão quanto o ID com sufixo _BLOQUEADO para garantir a limpeza.
     """
+    global db
     if not db: return False
     
     data_para_id = data_obj.strftime('%Y-%m-%d')
@@ -736,6 +744,7 @@ else:
                         }
                         st.rerun()
                         
+
 
 
 
