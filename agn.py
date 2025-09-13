@@ -99,30 +99,34 @@ st.markdown("""
 
 @st.cache_resource
 def initialize_firebase():
-    """Inicializa o Firebase usando as credenciais do st.secrets."""
-    # Verifica se a aplicação já foi inicializada
+    """Inicializa o Firebase usando credenciais estruturadas do st.secrets."""
     if not firebase_admin._apps:
         try:
-            # Carrega as credenciais diretamente do Streamlit Secrets
-            creds_json_str = st.secrets["FIREBASE_CREDENTIALS"]
-            creds_dict = json.loads(creds_json_str)
+            # Constrói o dicionário de credenciais a partir dos secrets
+            creds_dict = {
+                "type": st.secrets.firebase.type,
+                "project_id": st.secrets.firebase.project_id,
+                "private_key_id": st.secrets.firebase.private_key_id,
+                "private_key": st.secrets.firebase.private_key.replace('\\n', '\n'),
+                "client_email": st.secrets.firebase.client_email,
+                "client_id": st.secrets.firebase.client_id,
+                "auth_uri": st.secrets.firebase.auth_uri,
+                "token_uri": st.secrets.firebase.token_uri,
+                "auth_provider_x509_cert_url": st.secrets.firebase.auth_provider_x509_cert_url,
+                "client_x509_cert_url": st.secrets.firebase.client_x509_cert_url,
+                "universe_domain": st.secrets.firebase.universe_domain
+            }
             
-            # Inicializa o app Firebase com as credenciais
             cred = credentials.Certificate(creds_dict)
             firebase_admin.initialize_app(cred)
             
         except Exception as e:
             st.error("ERRO CRÍTICO AO CONECTAR COM O FIREBASE!")
             st.error(f"Detalhe do erro: {e}")
-            st.warning("Verifique se você configurou o 'FIREBASE_CREDENTIALS' corretamente nos Secrets da sua aplicação no Streamlit Cloud.")
-            # Para a execução se a conexão falhar
+            st.warning("Houve um problema ao ler as credenciais do Firebase. Verifique o formato nos Secrets.")
             st.stop()
             
-    # Retorna o cliente do Firestore
     return firestore.client()
-
-# --- Conecta ao banco de dados ---
-db = initialize_firebase()
 
 
 # --- DADOS BÁSICOS ---
@@ -732,6 +736,7 @@ else:
                         }
                         st.rerun()
                         
+
 
 
 
