@@ -30,9 +30,6 @@ st.set_page_config(
     layout="wide" # ou "wide", como preferir
 )
 
-EMAIL = os.environ.get("EMAIL_CREDENCIADO")
-SENHA = os.environ.get("EMAIL_SENHA")
-
 # CSS customizado para colorir os botões da tabela e centralizar o texto
 # CSS customizado para criar uma grade de agendamentos visual e responsiva
 st.markdown("""
@@ -97,36 +94,37 @@ st.markdown("""
 
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
-@st.cache_resource
-def initialize_firebase():
-    """Inicializa o Firebase usando credenciais estruturadas do st.secrets."""
-    if not firebase_admin._apps:
-        try:
-            # Constrói o dicionário de credenciais a partir dos secrets
-            creds_dict = {
-                "type": st.secrets.firebase.type,
-                "project_id": st.secrets.firebase.project_id,
-                "private_key_id": st.secrets.firebase.private_key_id,
-                "private_key": st.secrets.firebase.private_key.replace('\\n', '\n'),
-                "client_email": st.secrets.firebase.client_email,
-                "client_id": st.secrets.firebase.client_id,
-                "auth_uri": st.secrets.firebase.auth_uri,
-                "token_uri": st.secrets.firebase.token_uri,
-                "auth_provider_x509_cert_url": st.secrets.firebase.auth_provider_x509_cert_url,
-                "client_x509_cert_url": st.secrets.firebase.client_x509_cert_url,
-                "universe_domain": st.secrets.firebase.universe_domain
-            }
-            
-            cred = credentials.Certificate(creds_dict)
-            firebase_admin.initialize_app(cred)
-            
-        except Exception as e:
-            st.error("ERRO CRÍTICO AO CONECTAR COM O FIREBASE!")
-            st.error(f"Detalhe do erro: {e}")
-            st.warning("Houve um problema ao ler as credenciais do Firebase. Verifique o formato nos Secrets.")
-            st.stop()
-            
-    return firestore.client()
+FIREBASE_CREDENTIALS = None
+EMAIL = os.environ.get("EMAIL_CREDENCIADO")
+SENHA = os.environ.get("EMAIL_SENHA")
+
+# 2. Carrega o caminho para o ficheiro de credenciais do Firebase
+#    (O Render coloca o caminho nesta variável de ambiente)
+FIREBASE_SECRET_PATH = os.environ.get("FIREBASE_SECRET_PATH")
+
+if FIREBASE_SECRET_PATH:
+    try:
+        # Abre e lê o ficheiro JSON a partir do caminho fornecido
+        with open(FIREBASE_SECRET_PATH, 'r') as f:
+            FIREBASE_CREDENTIALS = json.load(f)
+    except FileNotFoundError:
+        st.error(f"ERRO: O arquivo de credenciais não foi encontrado no caminho: {FIREBASE_SECRET_PATH}")
+    except json.JSONDecodeError:
+        st.error("ERRO: O conteúdo do arquivo de credenciais não é um JSON válido.")
+    except Exception as e:
+        st.error(f"ERRO ao ler o Secret File do Firebase: {e}")
+else:
+    st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_SECRET_PATH' não está definida. Verifique as suas configurações no Render.")
+
+# --- Inicialização do Firebase ---
+if FIREBASE_CREDENTIALS and not firebase_admin._apps:
+    try:
+        cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"Erro ao inicializar a aplicação Firebase: {e}")
+
+db = firestore.client() if firebase_admin._apps else None
 
 
 # --- DADOS BÁSICOS ---
@@ -162,7 +160,6 @@ def buscar_agendamentos_do_dia(data_obj):
     Busca todos os agendamentos do dia em UMA ÚNICA CONSULTA e retorna um dicionário.
     A chave é o ID do documento, e o valor são os dados do agendamento.
     """
-    global db
     if not db:
         st.error("Firestore não inicializado.")
         return {}
@@ -183,7 +180,6 @@ def buscar_agendamentos_do_dia(data_obj):
 
 # FUNÇÕES DE ESCRITA (JÁ CORRIGIDAS NA NOSSA CONVERSA)
 def salvar_agendamento(data_obj, horario, nome, telefone, servicos, barbeiro):
-    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_agendamento = f"{data_para_id}_{horario}_{barbeiro}"
@@ -200,7 +196,6 @@ def salvar_agendamento(data_obj, horario, nome, telefone, servicos, barbeiro):
         return False
 
 def bloquear_horario(data_obj, horario, barbeiro, motivo="BLOQUEADO"):
-    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_bloqueio = f"{data_para_id}_{horario}_{barbeiro}_BLOQUEADO" if motivo == "BLOQUEADO" else f"{data_para_id}_{horario}_{barbeiro}"
@@ -222,7 +217,6 @@ def desbloquear_horario(data_obj, horario_agendado, barbeiro):
     """
     Remove o documento de bloqueio (_BLOQUEADO) referente a um agendamento de Corte+Barba.
     """
-    global db
     if not db: return
     try:
         # Calcula o horário seguinte que foi bloqueado
@@ -243,7 +237,6 @@ def desbloquear_horario(data_obj, horario_agendado, barbeiro):
 
 def verificar_disponibilidade_especifica(data_obj, horario, barbeiro):
     """ Verifica de forma eficiente se um único horário está livre. """
-    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     id_padrao = f"{data_para_id}_{horario}_{barbeiro}"
@@ -260,7 +253,6 @@ def verificar_disponibilidade_especifica(data_obj, horario, barbeiro):
         return False
 
 def cancelar_agendamento(data_obj, horario, barbeiro):
-    global db
     if not db: return None
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_agendamento = f"{data_para_id}_{horario}_{barbeiro}"
@@ -277,7 +269,6 @@ def cancelar_agendamento(data_obj, horario, barbeiro):
         return None
 
 def fechar_horario(data_obj, horario, barbeiro):
-    global db
     if not db: return False
     data_para_id = data_obj.strftime('%Y-%m-%d')
     chave_bloqueio = f"{data_para_id}_{horario}_{barbeiro}"
@@ -301,7 +292,6 @@ def desbloquear_horario_especifico(data_obj, horario, barbeiro):
     Remove um agendamento/bloqueio específico, tentando apagar tanto o ID
     padrão quanto o ID com sufixo _BLOQUEADO para garantir a limpeza.
     """
-    global db
     if not db: return False
     
     data_para_id = data_obj.strftime('%Y-%m-%d')
@@ -744,10 +734,6 @@ else:
                         }
                         st.rerun()
                         
-
-
-
-
 
 
 
