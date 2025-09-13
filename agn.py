@@ -98,53 +98,49 @@ st.markdown("""
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
 @st.cache_resource
-def conectar_ao_firebase():
+def initialize_firebase():
     """
-    Conecta-se ao Firebase usando as credenciais fornecidas por uma variável de ambiente 
-    que aponta para um arquivo secreto (padrão do Render).
-    A conexão é cacheada para evitar reinicializações desnecessárias.
+    Inicializa a conexão com o Firebase. A função só é executada uma vez
+    graças ao cache do Streamlit.
     """
-    # 1. Pega o caminho do arquivo secreto a partir da variável de ambiente
-    firebase_secret_path = os.environ.get("FIREBASE_SECRET_PATH")
-    
-    if not firebase_secret_path:
-        st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_SECRET_PATH' não está definida.")
-        return None
-
-    # 2. Tenta ler e carregar as credenciais do arquivo
     try:
-        with open(firebase_secret_path, 'r') as f:
-            firebase_credentials = json.load(f)
-    except FileNotFoundError:
-        st.error(f"ERRO: O arquivo de credenciais não foi encontrado no caminho: {firebase_secret_path}")
-        return None
-    except json.JSONDecodeError:
-        st.error("ERRO: O conteúdo do arquivo de credenciais não é um JSON válido.")
-        return None
-    except Exception as e:
-        st.error(f"ERRO ao ler o Secret File do Firebase: {e}")
-        return None
-
-    # 3. Inicializa a aplicação Firebase se ainda não foi inicializada
-    try:
+        # 1. Carrega os segredos do Streamlit
+        firebase_secrets = st.secrets["firebase"]
+        
+        # 2. CRIA UMA CÓPIA MUTÁVEL (editável) do dicionário de segredos
+        creds_dict = dict(firebase_secrets)
+        
+        # 3. Agora modificamos a CÓPIA, não o segredo original
+        if 'private_key' in creds_dict:
+            creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n')
+            
+        cred = credentials.Certificate(creds_dict)
+        
+        # Verifica se a app já foi inicializada para evitar erros
         if not firebase_admin._apps:
-            cred = credentials.Certificate(firebase_credentials)
             firebase_admin.initialize_app(cred)
-        
-        # 4. Retorna o cliente do Firestore
-        return firestore.client()
-        
+            print("Firebase inicializado com sucesso via st.secrets!")
+
     except Exception as e:
-        st.error(f"Erro ao inicializar a aplicação Firebase com as credenciais: {e}")
-        return None
+        st.error(f"ERRO CRÍTICO AO CONECTAR COM O FIREBASE! Detalhe: {e}")
+        st.info("Verifique se você configurou o arquivo .streamlit/secrets.toml corretamente.")
+        st.stop()
 
-# --- INICIALIZAÇÃO DO FIREBASE USANDO A FUNÇÃO CACHEADA ---
-db = conectar_ao_firebase()
+# 1. CHAMA A FUNÇÃO DE INICIALIZAÇÃO (FORA DELA MESMA)
+initialize_firebase()
 
-# --- VERIFICAÇÃO DE SEGURANÇA ---
-if db is None:
-    st.error("A conexão com o banco de dados falhou. O aplicativo não pode continuar.")
-    st.stop()
+# 2. DEFINE O CLIENTE DO FIRESTORE (NO ESCOPO PRINCIPAL)
+#    Agora a variável 'db' estará acessível em todo o seu código.
+db = firestore.client()
+
+# 3. CARREGA AS CREDENCIAIS DE E-MAIL (TAMBÉM NO ESCOPO PRINCIPAL)
+try:
+    EMAIL = st.secrets["email_credentials"]["email"]
+    SENHA = st.secrets["email_credentials"]["password"]
+except (KeyError, AttributeError):
+    st.error("Credenciais de e-mail não encontradas no secrets.toml. A função de envio de e-mail será desativada.")
+    EMAIL = None
+    SENHA = None
 
 
 # --- DADOS BÁSICOS ---
@@ -754,6 +750,7 @@ else:
                         }
                         st.rerun()
                         
+
 
 
 
