@@ -98,27 +98,53 @@ st.markdown("""
 # --- INICIALIZAÇÃO DO FIREBASE E E-MAIL (Mesmo do código original) ---
 
 @st.cache_resource
-def initialize_firebase():
-    """Inicializa o Firebase usando credenciais estruturadas do st.secrets."""
-    if not firebase_admin._apps:
-        try:
-            creds_dict = {
-                "type": st.secrets.firebase.type,
-                "project_id": st.secrets.firebase.project_id,
-                "private_key_id": st.secrets.firebase.private_key_id,
-                "private_key": st.secrets.firebase.private_key.replace('\\n', '\n'),
-                "client_email": st.secrets.firebase.client_email,
-                "client_id": st.secrets.firebase.client_id,
-                # ... e assim por diante para todos os campos ...
-            }
-            cred = credentials.Certificate(creds_dict)
-            firebase_admin.initialize_app(cred)
-        except Exception as e:
-            st.error(f"ERRO CRÍTICO AO CONECTAR COM O FIREBASE! Detalhe: {e}")
-            st.stop()
-    return firestore.client()
+def conectar_ao_firebase():
+    """
+    Conecta-se ao Firebase usando as credenciais fornecidas por uma variável de ambiente 
+    que aponta para um arquivo secreto (padrão do Render).
+    A conexão é cacheada para evitar reinicializações desnecessárias.
+    """
+    # 1. Pega o caminho do arquivo secreto a partir da variável de ambiente
+    firebase_secret_path = os.environ.get("FIREBASE_SECRET_PATH")
+    
+    if not firebase_secret_path:
+        st.error("ERRO CRÍTICO: A variável de ambiente 'FIREBASE_SECRET_PATH' não está definida.")
+        return None
 
-db = initialize_firebase()
+    # 2. Tenta ler e carregar as credenciais do arquivo
+    try:
+        with open(firebase_secret_path, 'r') as f:
+            firebase_credentials = json.load(f)
+    except FileNotFoundError:
+        st.error(f"ERRO: O arquivo de credenciais não foi encontrado no caminho: {firebase_secret_path}")
+        return None
+    except json.JSONDecodeError:
+        st.error("ERRO: O conteúdo do arquivo de credenciais não é um JSON válido.")
+        return None
+    except Exception as e:
+        st.error(f"ERRO ao ler o Secret File do Firebase: {e}")
+        return None
+
+    # 3. Inicializa a aplicação Firebase se ainda não foi inicializada
+    try:
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(firebase_credentials)
+            firebase_admin.initialize_app(cred)
+        
+        # 4. Retorna o cliente do Firestore
+        return firestore.client()
+        
+    except Exception as e:
+        st.error(f"Erro ao inicializar a aplicação Firebase com as credenciais: {e}")
+        return None
+
+# --- INICIALIZAÇÃO DO FIREBASE USANDO A FUNÇÃO CACHEADA ---
+db = conectar_ao_firebase()
+
+# --- VERIFICAÇÃO DE SEGURANÇA ---
+if db is None:
+    st.error("A conexão com o banco de dados falhou. O aplicativo não pode continuar.")
+    st.stop()
 
 
 # --- DADOS BÁSICOS ---
@@ -728,7 +754,6 @@ else:
                         }
                         st.rerun()
                         
-
 
 
 
